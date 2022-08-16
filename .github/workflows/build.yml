@@ -1,0 +1,37 @@
+name: build
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: windows-2022
+
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+        project: [foo_run_main]
+        platform: [Win32, x64]
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        submodules: true
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+      
+    - name: Apply patch
+      run: |
+        cd foobar2000-sdk
+        git apply fb2k.patch
+
+    - name: Build
+      run: msbuild /m '/p:Platform=${{ matrix.platform }};Configuration=${{ matrix.configuration }}' src\${{ matrix.project }}.sln
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+      with:
+        name: ${{ matrix.project }}-${{ matrix.platform }}
+        path: ${{ matrix.project }}\${{ matrix.platform }}\Release\${{ matrix.project }}.dll
