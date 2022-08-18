@@ -1,8 +1,6 @@
 #define _WIN32_WINNT _WIN32_WINNT_WIN7
 #define WINVER _WIN32_WINNT_WIN7
 
-#include <ranges>
-
 #include <foobar2000/SDK/foobar2000.h>
 
 namespace
@@ -54,7 +52,7 @@ namespace
 				const pfc::string8 parent_path = build_parent_path(ptr->get_parent());
 				const uint32_t count = ptr->get_command_count();
 
-				for (const uint32_t i : std::views::iota(0U, count))
+				for (uint32_t i = 0; i < count; ++i)
 				{
 					if (v2_ptr.is_valid() && v2_ptr->is_command_dynamic(i))
 					{
@@ -107,7 +105,7 @@ namespace
 					path.end_with('/');
 					const size_t count = node->get_children_count();
 
-					for (const size_t i : std::views::iota(0U, count))
+					for (size_t i = 0; i < count; ++i)
 					{
 						mainmenu_node::ptr child = node->get_child(i);
 						if (execute_recur(child, path))
