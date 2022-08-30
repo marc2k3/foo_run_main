@@ -9,35 +9,32 @@ jobs:
       matrix:
         configuration: [Release, Debug]
         project: [foo_run_main]
-        folder: [foo_run_main]
-        folder64: [foo_run_main-x64]
 
     steps:
     - name: Clone repo
       run: |
-        git clone --recursive https://github.com/marc2k3/${{ matrix.project }} ${{ matrix.folder }}
-        git clone --recursive https://github.com/marc2k3/${{ matrix.project }} ${{ matrix.folder64 }}
+        git clone --recursive https://github.com/marc2k3/${{ matrix.project }}
 
     - name: Set up MSBuild
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Build x86
-      run: |
-        msbuild ${{ matrix.folder }}\src\${{ matrix.project }}.sln -m -p:Platform=Win32 -p:Configuration=${{ matrix.configuration }}
-
-    - name: Build x64
-      run: |
-        msbuild ${{ matrix.folder64 }}\src\${{ matrix.project }}.sln -m -p:Platform=x64 -p:Configuration=${{ matrix.configuration }}
-
-    - name: Copy files
-      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+    - name: Create component folder
       run: |
         mkdir component
         mkdir component\x64
-        copy ${{ matrix.folder }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.dll component
-        copy ${{ matrix.folder }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.pdb component
-        copy ${{ matrix.folder64 }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.dll component\x64
-        copy ${{ matrix.folder64 }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.pdb component\x64
+
+    - name: Build x86
+      run: |
+        msbuild ${{ matrix.project }}\src\${{ matrix.project }}.sln -m -p:Platform=Win32 -p:Configuration=${{ matrix.configuration }}
+        copy ${{ matrix.project }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.dll component
+        copy ${{ matrix.project }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.pdb component
+        cd ${{ matrix.project }} && git clean -fdx && git submodule foreach --recursive git clean -fdx
+
+    - name: Build x64
+      run: |
+        msbuild ${{ matrix.project }}\src\${{ matrix.project }}.sln -m -p:Platform=x64 -p:Configuration=${{ matrix.configuration }}
+        copy ${{ matrix.project }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.dll component\x64
+        copy ${{ matrix.project }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.pdb component\x64
 
     - name: Upload with pdb
       if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
