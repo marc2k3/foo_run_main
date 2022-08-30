@@ -2,35 +2,59 @@ name: build
 on: [push, pull_request]
 jobs:
   build:
+    name: ${{ matrix.project }}-${{ matrix.configuration }}
     runs-on: windows-2022
 
     strategy:
       matrix:
         configuration: [Release, Debug]
         project: [foo_run_main]
-        platform: [Win32, x64]
+        folder: [foo_run_main]
+        folder64: [foo_run_main-x64]
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: true
+    - name: Clone repo
+      run: |
+        git clone --recursive https://github.com/marc2k3/${{ matrix.project }} ${{ matrix.folder }}
+        git clone --recursive https://github.com/marc2k3/${{ matrix.project }} ${{ matrix.folder64 }}
 
     - name: Set up MSBuild
       uses: microsoft/setup-msbuild@v1.1
 
-    - name: Build
-      run: msbuild /m '/p:Platform=${{ matrix.platform }};Configuration=${{ matrix.configuration }}' src\${{ matrix.project }}.sln
+    - name: Build x86
+      run: |
+        msbuild ${{ matrix.folder }}\src\${{ matrix.project }}.sln -m -p:Platform=Win32 -p:Configuration=${{ matrix.configuration }}
 
-    - name: Upload dll
-      uses: actions/upload-artifact@v3
-      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
-      with:
-        name: ${{ matrix.project }}-${{ github.ref_name }}-${{ matrix.platform }}
-        path: src\${{ matrix.platform }}\Release\${{ matrix.project }}.dll
+    - name: Build x64
+      run: |
+        msbuild ${{ matrix.folder64 }}\src\${{ matrix.project }}.sln -m -p:Platform=x64 -p:Configuration=${{ matrix.configuration }}
 
-    - name: Upload pdb
-      uses: actions/upload-artifact@v3
+    - name: Copy files
       if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+      run: |
+        mkdir component
+        mkdir component\x64
+        copy ${{ matrix.folder }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.dll component
+        copy ${{ matrix.folder }}\src\Win32\${{ matrix.configuration }}\${{ matrix.project }}.pdb component
+        copy ${{ matrix.folder64 }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.dll component\x64
+        copy ${{ matrix.folder64 }}\src\x64\${{ matrix.configuration }}\${{ matrix.project }}.pdb component\x64
+
+    - name: Upload with pdb
+      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+      uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.project }}-${{ github.ref_name }}-${{ matrix.platform }}-pdb
-        path: src\${{ matrix.platform }}\Release\${{ matrix.project }}.pdb
+        name: ${{ matrix.project }}-${{ github.ref_name }}-with-pdb
+        path: component
+
+    - name: Delete pdb files
+      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+      run: |
+        del component\${{ matrix.project }}.pdb
+        del component\x64\${{ matrix.project }}.pdb
+
+    - name: Upload
+      if: startsWith(github.ref, 'refs/tags') && matrix.configuration == 'Release'
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.project }}-${{ github.ref_name }}
+        path: component
