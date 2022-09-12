@@ -14,16 +14,7 @@ namespace
 		"Build: " __TIME__ ", " __DATE__
 	);
 
-	class InstallationValidator : public component_installation_validator
-	{
-	public:
-		bool is_installed_correctly() override
-		{
-			return test_my_name("foo_run_main.dll") && core_version_info_v2::get()->test_version(2, 0, 0, 0);
-		}
-	};
-
-	FB2K_SERVICE_FACTORY(InstallationValidator);
+	VALIDATE_COMPONENT_FILENAME("foo_run_main.dll");
 
 	class MainMenuCommand
 	{
