@@ -119,7 +119,7 @@ namespace
 
 		bool match_command(const char* what)
 		{
-			return _stricmp(m_command, what) == 0;
+			return stricmp_utf8(m_command, what) == 0;
 		}
 
 		pfc::string8 build_parent_path(GUID parent)
