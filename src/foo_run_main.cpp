@@ -150,7 +150,7 @@ namespace
 	class CommandLineHandler : public commandline_handler
 	{
 	public:
-		result on_token(const char* token) override
+		result on_token(const char* token) final
 		{
 			pfc::string8 s = token;
 
